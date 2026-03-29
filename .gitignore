@@ -5,9 +5,10 @@ noms.iml
 .idea
 .claude
 .agents
-.agents
+.agent
 .noms
 .nomsconfig
 .DS_Store
 node_modules
 docs
+.docs
