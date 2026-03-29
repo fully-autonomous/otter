@@ -85,7 +85,7 @@ func (c *Config) WriteTo(configHome string) (string, error) {
 	if err := os.MkdirAll(filepath.Dir(file), os.ModePerm); err != nil {
 		return "", err
 	}
-	if err := ioutil.WriteFile(file, []byte(c.writeableString()), os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(file, []byte(c.WriteableString()), os.ModePerm); err != nil {
 		return "", err
 	}
 	return file, nil
@@ -127,11 +127,11 @@ func (c *Config) String() string {
 	if c.File != "" {
 		buffer.WriteString(fmt.Sprintf("file = %s\n", c.File))
 	}
-	buffer.WriteString(c.writeableString())
+	buffer.WriteString(c.WriteableString())
 	return buffer.String()
 }
 
-func (c *Config) writeableString() string {
+func (c *Config) WriteableString() string {
 	var buffer bytes.Buffer
 	for k, r := range c.Db {
 		buffer.WriteString(fmt.Sprintf("[db.%s]\n", k))

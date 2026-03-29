@@ -44,27 +44,18 @@ function isNomsError(obj: any): obj is NomsError {
 }
 
 export async function runNoms(args: string[], format: 'text' | 'json' = 'json'): Promise<{ stdout: string; stderr: string; code: number }> {
-  return new Promise((resolve) => {
-    const proc = Bun.spawn(['noms', ...args, '--format', format], {
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    proc.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-
-    proc.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-
-    proc.on('close', (code) => {
-      resolve({ stdout, stderr, code: code || 0 });
-    });
+  const proc = Bun.spawn(['noms', ...args, '--format', format], {
+    stdout: 'pipe',
+    stderr: 'pipe',
   });
+  
+  const [stdout, stderr] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  
+  const code = await proc.exited;
+  return { stdout, stderr, code };
 }
 
 export async function getLog(limit: number = 50): Promise<NomsLogEntry[]> {

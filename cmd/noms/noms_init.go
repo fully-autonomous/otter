@@ -33,11 +33,15 @@ func nomsInit(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandle
 		d.CheckErrorNoUsage(err)
 		dbPath := filepath.Join(cwd, ".noms")
 
+		// Create database directory
+		err = os.MkdirAll(dbPath, 0755)
+		d.CheckErrorNoUsage(err)
+
 		// Create NBS store
 		cs := nbs.NewLocalStore(dbPath, 256*1024*1024) // 256MB mem table
 		defer cs.Close()
 
-		// Create config file
+		// Create config file in current directory (local config)
 		cfg := &config.Config{
 			Db: map[string]config.DbConfig{
 				"default": {
@@ -46,9 +50,10 @@ func nomsInit(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandle
 			},
 		}
 
-		home, err := os.UserHomeDir()
-		d.CheckErrorNoUsage(err)
-		configPath, err := cfg.WriteTo(home)
+		// Write config to current directory
+		configPath := filepath.Join(cwd, config.NomsConfigFile)
+		data := cfg.WriteableString()
+		err = os.WriteFile(configPath, []byte(data), 0644)
 		d.CheckErrorNoUsage(err)
 
 		fmt.Printf("Initialized empty Noms database at: %s\n", dbPath)
