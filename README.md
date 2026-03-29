@@ -5,9 +5,7 @@
 [Use Cases](#use-cases)&nbsp; | &nbsp;[Setup](#setup)&nbsp; | &nbsp;[TUI](#terminal-ui)&nbsp; | &nbsp;[Status](#status)&nbsp; | &nbsp;[Documentation](./doc/intro.md)&nbsp; | &nbsp;[Contact](#contact-us)
 <br><br>
 
-[![Build Status](https://travis-ci.org/attic-labs/noms.svg?branch=master)](https://travis-ci.org/attic-labs/noms)
-[![Docker Build Status](https://img.shields.io/docker/build/noms/noms.svg)](https://hub.docker.com/r/noms/noms/)
-[![GoDoc](https://godoc.org/github.com/attic-labs/noms?status.svg)](https://godoc.org/github.com/attic-labs/noms)
+[![GoDoc](https://godoc.org/github.com/fully-autonomous/noms?status.svg)](https://godoc.org/github.com/fully-autonomous/noms)
 
 # Welcome
 
@@ -20,10 +18,10 @@ Like Git, Noms is:
 
 Unlike Git, Noms is a database, so it also:
 
-* Primarily **stores structured data**, not files and directories (see: [the Noms type system](https://github.com/attic-labs/noms/blob/master/doc/intro.md#types))
+* Primarily **stores structured data**, not files and directories (see: [the Noms type system](https://github.com/fully-autonomous/noms/blob/master/doc/intro.md#types))
 * **Scales well** to large amounts of data and concurrent clients
 * Supports **atomic transactions** (a single instance of Noms is CP, but Noms is typically run in production backed by S3, in which case it is "[effectively CA](https://cloud.google.com/spanner/docs/whitepapers/SpannerAndCap.pdf)")
-* Supports **efficient indexes** (see: [Noms prolly-trees](https://github.com/attic-labs/noms/blob/master/doc/intro.md#prolly-trees-probabilistic-b-trees))
+* Supports **efficient indexes** (see: [Noms prolly-trees](https://github.com/fully-autonomous/noms/blob/master/doc/intro.md#prolly-trees-probabilistic-b-trees))
 * Features a **flexible query model** (see: [GraphQL](./go/ngql/README.md))
 
 A Noms database can reside within a file system or in the cloud:
@@ -180,12 +178,11 @@ Tour the Go API: [Go SDK Tour](doc/go-tour.md)
 
 ## Contact Us
 
-Interested in using Noms? Awesome! We would be happy to work with you to help understand whether Noms is a fit for your problem. Reach out at:
+Interested in using Noms? Awesome! Reach out at:
 
-- [GitHub Issues](https://github.com/fully-autonomous/noms/issues)
-- Original Noms discussion: [Mailing List](https://groups.google.com/forum/#!forum/nomsdb)
-- Original Noms Twitter: [Twitter](https://twitter.com/nomsdb)
+- [GitHub Issues](https://github.com/fully-autonomous/noms/issues) - Report bugs, request features, or ask questions
+- [GitHub Discussions](https://github.com/fully-autonomous/noms/discussions) - Community discussions and Q&A
 
 ## Licensing
 
-Noms is open source software, licensed by Attic Labs, Inc. under the Apache License, Version 2.0.
+Noms is open source software, licensed under the Apache License, Version 2.0.
