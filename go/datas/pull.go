@@ -99,4 +99,7 @@ func Pull(srcDB, sinkDB Database, sourceRef types.Ref, progressCh chan PullProgr
 	}
 
 	persistChunks(sinkDB.chunkStore())
+
+	// TODO: Integrate packfile protocol for better performance with long commit chains
+	// See go/datas/packfile/packfile.go for Git-style packfile implementation
 }

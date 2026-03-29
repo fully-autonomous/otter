@@ -19,22 +19,32 @@ import (
 	"github.com/attic-labs/noms/go/util/verbose"
 )
 
+var outputFormat string // "text" or "json"
+
 var kingpinCommands = []util.KingpinCommand{
 	nomsBlob,
+	nomsBranch,
+	nomsCheckout,
+	nomsClone,
 	nomsCommit,
 	nomsConfig,
 	nomsDiff,
 	nomsDs,
+	nomsInit,
 	nomsList,
 	nomsLog,
 	nomsMerge,
 	nomsJSON,
 	nomsMap,
+	nomsPull,
+	nomsPush,
+	nomsRemote,
 	nomsRoot,
 	nomsServe,
 	nomsSet,
 	nomsShow,
 	nomsStats,
+	nomsStatus,
 	nomsStruct,
 	nomsSync,
 	splore.Cmd,
@@ -68,6 +78,7 @@ func main() {
 	// global flags
 	profile.RegisterProfileFlags(noms)
 	verbose.RegisterVerboseFlags(noms)
+	noms.Flag("format", "output format: text or json").Default("text").StringVar(&outputFormat)
 
 	handlers := map[string]util.KingpinHandler{}
 

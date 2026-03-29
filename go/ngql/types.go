@@ -6,9 +6,10 @@ package ngql
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
-
+	"io"
 	"strings"
 
 	"github.com/attic-labs/graphql"
@@ -102,9 +103,10 @@ type getSubvaluesFn func(vrw types.ValueReadWriter, v types.Value, args map[stri
 // union contains a scalar, we represent it in that context as a "boxed" value.
 // E.g.
 // Boolean! =>
-// type BooleanValue {
-//   scalarValue: Boolean!
-// }
+//
+//	type BooleanValue {
+//	  scalarValue: Boolean!
+//	}
 func (tc *TypeConverter) scalarToValue(nomsType *types.Type, scalarType graphql.Type) graphql.Type {
 	return graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("%sValue", tc.getTypeName(nomsType)),
@@ -179,8 +181,14 @@ func (tc *TypeConverter) nomsTypeToGraphQLType(nomsType *types.Type, boxedIfScal
 	case types.UnionKind:
 		gqlType = tc.unionToGQLUnion(nomsType)
 
-	case types.BlobKind, types.ValueKind, types.TypeKind:
-		// TODO: https://github.com/attic-labs/noms/issues/3155
+	case types.BlobKind:
+		gqlType = tc.blobToGraphQLObject(nomsType)
+
+	case types.TypeKind:
+		gqlType = tc.typeToGraphQLObject(nomsType)
+
+	case types.ValueKind:
+		// ValueKind can be any type, treat as JSON string representation
 		gqlType = graphql.String
 
 	case types.CycleKind:
@@ -646,10 +654,10 @@ type mapEntry struct {
 // Map data must be returned as a list of key-value pairs. Each unique keyType:valueType is
 // represented as a graphql
 //
-// type <KeyTypeName><ValueTypeName>Entry {
-//	 key: <KeyType>!
-//	 value: <ValueType>!
-// }
+//	type <KeyTypeName><ValueTypeName>Entry {
+//		 key: <KeyType>!
+//		 value: <ValueType>!
+//	}
 func (tc *TypeConverter) mapEntryToGraphQLObject(keyType, valueType graphql.Type, nomsKeyType, nomsValueType *types.Type) graphql.Type {
 	return graphql.NewNonNull(graphql.NewObject(graphql.ObjectConfig{
 		Name: fmt.Sprintf("%s%sEntry", tc.getTypeName(nomsKeyType), tc.getTypeName(nomsValueType)),
@@ -923,10 +931,10 @@ func mapAppendEntry(slice []interface{}, k, v types.Value) []interface{} {
 
 // Refs are represented as structs:
 //
-// type <ValueTypeName>Entry {
-//	 targetHash: String!
-//	 targetValue: <ValueType>!
-// }
+//	type <ValueTypeName>Entry {
+//		 targetHash: String!
+//		 targetValue: <ValueType>!
+//	}
 func (tc *TypeConverter) refToGraphQLObject(nomsType *types.Type) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
 		Name: tc.getTypeName(nomsType),
@@ -955,6 +963,64 @@ func (tc *TypeConverter) refToGraphQLObject(nomsType *types.Type) *graphql.Objec
 	})
 }
 
+func (tc *TypeConverter) blobToGraphQLObject(nomsType *types.Type) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: tc.getTypeName(nomsType),
+		Fields: graphql.Fields{
+			"hash": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(types.Blob).Hash().String(), nil
+				},
+			},
+			"size": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.Float),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return float64(p.Source.(types.Blob).Len()), nil
+				},
+			},
+			"data": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					blob := p.Source.(types.Blob)
+					data := make([]byte, blob.Len())
+					n, err := blob.ReadAt(data, 0)
+					if err != nil && err != io.EOF {
+						return "", err
+					}
+					return base64.StdEncoding.EncodeToString(data[:n]), nil
+				},
+			},
+		},
+	})
+}
+
+func (tc *TypeConverter) typeToGraphQLObject(nomsType *types.Type) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: tc.getTypeName(nomsType),
+		Fields: graphql.Fields{
+			"hash": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(*types.Type).Hash().String(), nil
+				},
+			},
+			"kind": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(*types.Type).TargetKind().String(), nil
+				},
+			},
+			"description": &graphql.Field{
+				Type: graphql.NewNonNull(graphql.String),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					return p.Source.(*types.Type).Describe(), nil
+				},
+			},
+		},
+	})
+}
+
 func MaybeGetScalar(v types.Value) interface{} {
 	switch v.(type) {
 	case types.Bool:
@@ -963,9 +1029,18 @@ func MaybeGetScalar(v types.Value) interface{} {
 		return float64(v.(types.Number))
 	case types.String:
 		return string(v.(types.String))
-	case *types.Type, types.Blob:
-		// TODO: https://github.com/attic-labs/noms/issues/3155
-		return v.Hash()
+	case types.Blob:
+		// Return base64 encoded blob data
+		blob := v.(types.Blob)
+		data := make([]byte, blob.Len())
+		n, err := blob.ReadAt(data, 0)
+		if err != nil && err != io.EOF {
+			return v.Hash().String()
+		}
+		return base64.StdEncoding.EncodeToString(data[:n])
+	case *types.Type:
+		// Return type description string
+		return v.(*types.Type).Describe()
 	}
 
 	return v
