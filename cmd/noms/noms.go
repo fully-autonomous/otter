@@ -38,6 +38,7 @@ var kingpinCommands = []util.KingpinCommand{
 	nomsMap,
 	nomsPull,
 	nomsPush,
+	nomsQuery,
 	nomsRemote,
 	nomsRoot,
 	nomsServe,
