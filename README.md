@@ -1,17 +1,8 @@
-# Warning - This project is not active
-
-Noms is not being maintained. You shouldn't use it, except maybe for fun or research.
-
-If you are interested in something like Noms, you probably want Dolt (https://github.com/dolthub/dolt) which is a fork of this project and actively maintained.
-
-Send me (aaron at aaronboodman.com) a message if you have questions.
-
-<hr>
-
+# Noms
 
 <img src='doc/nommy_cropped_smaller.png' width='350' title='Nommy, the snacky otter'>
 
-[Use Cases](#use-cases)&nbsp; | &nbsp;[Setup](#setup)&nbsp; | &nbsp;[Status](#status)&nbsp; | &nbsp;[Documentation](./doc/intro.md)&nbsp; | &nbsp;[Contact](#contact-us)
+[Use Cases](#use-cases)&nbsp; | &nbsp;[Setup](#setup)&nbsp; | &nbsp;[TUI](#terminal-ui)&nbsp; | &nbsp;[Status](#status)&nbsp; | &nbsp;[Documentation](./doc/intro.md)&nbsp; | &nbsp;[Contact](#contact-us)
 <br><br>
 
 [![Build Status](https://travis-ci.org/attic-labs/noms.svg?branch=master)](https://travis-ci.org/attic-labs/noms)
@@ -59,72 +50,119 @@ Embed Noms into mobile applications, making it easier to build offline-first, fu
 
 ## Install
 
-1. Download the latest release:
- - [**Linux**](https://github.com/attic-labs/noms/releases/download/latest/linux.zip)
- - [**Mac OS**](https://github.com/attic-labs/noms/releases/download/latest/osx.zip)
-2. Unzip the directory somewhere and add it to your `$PATH`
-3. Verify Noms is installed correctly:
+### From Source
 
+1. Clone the repository:
+```bash
+git clone https://github.com/fully-autonomous/noms.git
+cd noms
 ```
-$ noms version
-format version: 7.18
-built from <developer build>
+
+2. Build the CLI:
+```bash
+go build -o bin/noms ./cmd/noms/
+```
+
+3. Add to your PATH:
+```bash
+export PATH="$PWD/bin:$PATH"
+```
+
+4. Verify installation:
+```bash
+noms version
 ```
 
 <br>
 
-## Run
+## Terminal UI
 
-Import some data:
+Noms now includes a fully interactive Terminal UI (TUI) for intuitive database management.
 
-```shell
-go install github.com/attic-labs/noms/samples/go/csv/csv-import
-curl 'https://data.cityofnewyork.us/api/views/kku6-nxdu/rows.csv?accessType=DOWNLOAD' > /tmp/data.csv
-csv-import /tmp/data.csv /tmp/noms::nycdemo
+### Features
+
+- **Dashboard** - Real-time overview of status, branches, datasets, and recent commits
+- **Branch Manager** - Create, checkout, and delete branches with visual selection
+- **Dataset Browser** - Browse and view dataset contents interactively  
+- **Sync Panel** - Push, pull, and manage remotes with interactive input
+- **Commit Workflow** - Write commit messages with full interactive prompts
+
+### Running the TUI
+
+```bash
+cd tui
+bun install
+bun run src/index.ts
 ```
 
-Explore:
-
-```shell
-noms show /tmp/noms::nycdemo
+Or run directly:
+```bash
+cd tui && bun run src/index.ts
 ```
 
-Should show:
+### Navigation
 
-```go
-struct Commit {
-  meta: struct Meta {
-    date: "2017-09-19T19:33:01Z",
-    inputFile: "/tmp/data.csv",
-  },
-  parents: set {},
-  value: [  // 236 items
-    struct Row {
-      countAmericanIndian: "0",
-      countAsianNonHispanic: "3",
-      countBlackNonHispanic: "21",
-      countCitizenStatusTotal: "44",
-      countCitizenStatusUnknown: "0",
-      countEthnicityTotal: "44",
-...
+- `[1-5]` - Navigate between Dashboard, Branches, Datasets, Sync, and Commit screens
+- `[b/q]` - Go back / Quit
+- `[j/k]` or `[↑/↓]` - Navigate lists
+- `[Enter]` - Select/Confirm
+- `[n/c/d]` - New branch, Checkout, Delete branch (in Branch manager)
+- `[p/l/a]` - Push, Pull, Add remote (in Sync panel)
+
+<br>
+
+## Quick Start
+
+Initialize a new database:
+```bash
+mkdir mydb && cd mydb
+noms init
+```
+
+Create and switch branches:
+```bash
+noms branch -c feature-branch
+noms checkout feature-branch
+```
+
+Commit data:
+```bash
+noms commit -m "Add initial data" /path/to/data mydataset
+```
+
+View history:
+```bash
+noms log
+noms show mydataset
+```
+
+Sync with remote:
+```bash
+noms remote --add origin https://remote-server.com/db
+noms push origin
 ```
 
 <br>
 
 ## Status
 
-Nobody is working on this right now. You shouldn't rely on it unless you're willing to take over development yourself.
+This fork is actively maintained with the following completed features:
 
-### Major Open Issues
+### Completed
 
-These are the major things you'd probably want to fix before relying on this for most systems.
+* ✅ **Terminal UI** - Full interactive TUI with menus, navigation, and all operations
+* ✅ **Branch Management** - Create, checkout, delete, and list branches
+* ✅ **Remote Configuration** - Persistent remote configuration with add/remove/list
+* ✅ **Sync Operations** - Push and pull with remote servers
+* ✅ **Time Travel** - Browse and checkout historical versions
+* ✅ **Query System** - SQL-like query interface via `noms query`
+* ✅ **Dataset Management** - Import, export, and manage structured datasets
 
-* Sync performance with long commit chains (https://github.com/attic-labs/noms/issues/2233)
-* Migration (https://github.com/attic-labs/noms/issues/3363)
-* Garbage Collection (https://github.com/attic-labs/noms/issues/3374)
-* Query language
-  * We started trying to hack in GraphQL but it's incomplete and maybe not the right thing. See: [ngql](./go/ngql/README.md)
-* [Various other smaller bugs and improvements](https://github.com/attic-labs/noms/issues?q=is%3Aissue+is%3Aopen+label%3AP0)
+### In Progress
+
+* Garbage Collection for orphaned chunks
+* Migration tools for format upgrades
+* Query language improvements
 
 <br>
 
@@ -144,8 +182,9 @@ Tour the Go API: [Go SDK Tour](doc/go-tour.md)
 
 Interested in using Noms? Awesome! We would be happy to work with you to help understand whether Noms is a fit for your problem. Reach out at:
 
-- [Mailing List](https://groups.google.com/forum/#!forum/nomsdb)
-- [Twitter](https://twitter.com/nomsdb)
+- [GitHub Issues](https://github.com/fully-autonomous/noms/issues)
+- Original Noms discussion: [Mailing List](https://groups.google.com/forum/#!forum/nomsdb)
+- Original Noms Twitter: [Twitter](https://twitter.com/nomsdb)
 
 ## Licensing
 
