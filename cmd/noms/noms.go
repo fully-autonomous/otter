@@ -48,6 +48,7 @@ var kingpinCommands = []util.KingpinCommand{
 	nomsStatus,
 	nomsStruct,
 	nomsSync,
+	nomsTui,
 	splore.Cmd,
 	nomsVersion,
 }
