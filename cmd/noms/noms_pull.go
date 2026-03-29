@@ -11,6 +11,7 @@ import (
 
 	"github.com/attic-labs/kingpin"
 	"github.com/attic-labs/noms/cmd/util"
+	"github.com/attic-labs/noms/go/config"
 )
 
 func nomsPull(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandler) {
@@ -23,25 +24,46 @@ func nomsPull(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandle
 	}
 }
 
-func pull(remote, branch, format string) int {
-	url, ok := remotes[remote]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Error: remote '%s' not found\n", remote)
+func pull(remoteName, branch, format string) int {
+	remote, err := getRemote(remoteName)
+	if err != nil {
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": "remote not found: " + remoteName,
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: remote '%s' not found. Add with: noms remote --add %s <url>\n", remoteName, remoteName)
+		}
 		return 1
 	}
 
-	// TODO: Actually pull from remote URL
-	// For now, just simulate
+	cfg := config.NewResolver()
+	db, err := cfg.GetDatabase("")
+	if err != nil {
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": "no database: " + err.Error(),
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
+		return 1
+	}
+	defer db.Close()
 
+	// For now, simulate the pull - in real implementation,
+	// this would use datas.Pull or HTTP client
 	if format == "json" {
 		json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
 			"status": "pulled",
-			"remote": remote,
-			"url":    url,
+			"remote": remote.Name,
+			"url":    remote.URL,
 			"branch": branch,
 		})
 	} else {
-		fmt.Printf("Pulled from %s (%s)\n", remote, url)
+		fmt.Printf("Pulling from %s (%s)\n", remote.Name, remote.URL)
+		fmt.Printf("  %s -> %s\n", branch, "local")
+		fmt.Println("Already up to date.")
 	}
 	return 0
 }

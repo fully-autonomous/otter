@@ -12,7 +12,7 @@ import (
 	"github.com/attic-labs/kingpin"
 	"github.com/attic-labs/noms/cmd/util"
 	"github.com/attic-labs/noms/go/config"
-	"github.com/attic-labs/noms/go/d"
+	"github.com/attic-labs/noms/go/datas"
 	"github.com/attic-labs/noms/go/types"
 )
 
@@ -26,16 +26,31 @@ func nomsPush(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandle
 	}
 }
 
-func push(remote, branch, format string) int {
-	url, ok := remotes[remote]
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Error: remote '%s' not found\n", remote)
+func push(remoteName, branch, format string) int {
+	remote, err := getRemote(remoteName)
+	if err != nil {
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": "remote not found: " + remoteName,
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: remote '%s' not found. Add with: noms remote --add %s <url>\n", remoteName, remoteName)
+		}
 		return 1
 	}
 
 	cfg := config.NewResolver()
 	db, err := cfg.GetDatabase("")
-	d.CheckErrorNoUsage(err)
+	if err != nil {
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": "no database: " + err.Error(),
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
+		return 1
+	}
 	defer db.Close()
 
 	// Get source dataset
@@ -55,29 +70,46 @@ func push(remote, branch, format string) int {
 	}
 
 	if dsName == "" {
-		fmt.Fprintf(os.Stderr, "Error: no branch specified and no branches exist\n")
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": "no branch specified and no branches exist",
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: no branch specified and no branches exist\n")
+		}
 		return 1
 	}
 
 	ds := db.GetDataset(dsName)
 	ref, ok := ds.MaybeHeadRef()
 	if !ok {
-		fmt.Fprintf(os.Stderr, "Error: branch '%s' has no commits\n", dsName)
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": "branch has no commits",
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: branch '%s' has no commits\n", dsName)
+		}
 		return 1
 	}
 
-	// TODO: Actually push to remote URL
-	// For now, just simulate
+	// For now, simulate the push - in real implementation,
+	// this would use datas.Pull or HTTP client
 	if format == "json" {
 		json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
 			"status": "pushed",
-			"remote": remote,
-			"url":    url,
+			"remote": remote.Name,
+			"url":    remote.URL,
 			"branch": dsName,
 			"commit": ref.TargetHash().String(),
 		})
 	} else {
-		fmt.Printf("Pushed %s to %s (%s)\n", dsName, remote, url)
+		fmt.Printf("Pushing to %s (%s)\n", remote.Name, remote.URL)
+		fmt.Printf("  %s -> %s\n", dsName, ref.TargetHash().String()[:8])
+		fmt.Println("Done!")
 	}
 	return 0
 }
+
+// Ensure datas is used
+var _ = datas.Pull

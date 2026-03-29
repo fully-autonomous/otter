@@ -11,14 +11,8 @@ import (
 
 	"github.com/attic-labs/kingpin"
 	"github.com/attic-labs/noms/cmd/util"
+	"github.com/attic-labs/noms/go/config"
 )
-
-type remoteConfig struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-}
-
-var remotes = map[string]string{}
 
 func nomsRemote(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandler) {
 	cmd := noms.Command("remote", "Manage set of tracked remotes.")
@@ -58,37 +52,62 @@ func nomsRemote(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHand
 	}
 }
 
-func listRemotes(format string) int {
-	names := []string{}
-	urls := []string{}
-	for name, url := range remotes {
-		names = append(names, name)
-		urls = append(urls, url)
+func loadRemotesConfig() *config.RemoteConfig {
+	rc, err := config.LoadRemotes(config.RemoteConfigPath())
+	if err != nil {
+		return config.DefaultRemoteConfig()
 	}
+	return rc
+}
+
+func saveRemotesConfig(rc *config.RemoteConfig) {
+	if err := config.SaveRemotes(config.RemoteConfigPath(), rc); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to save remote config: %v\n", err)
+	}
+}
+
+func listRemotes(format string) int {
+	rc := loadRemotesConfig()
+	remotes := rc.ListRemotes()
 
 	if format == "json" {
 		remotesList := []map[string]string{}
-		for name, url := range remotes {
+		for _, r := range remotes {
 			remotesList = append(remotesList, map[string]string{
-				"name": name,
-				"url":  url,
+				"name": r.Name,
+				"url":  r.URL,
 			})
 		}
 		json.NewEncoder(os.Stdout).Encode(remotesList)
 	} else {
 		if len(remotes) == 0 {
 			fmt.Println("No remotes configured")
+			fmt.Println("\nTo add a remote:")
+			fmt.Println("  noms remote --add origin https://example.com/db")
 			return 0
 		}
-		for name, url := range remotes {
-			fmt.Printf("  %s -> %s\n", name, url)
+		for _, r := range remotes {
+			fmt.Printf("  %s -> %s\n", r.Name, r.URL)
 		}
 	}
 	return 0
 }
 
 func addRemote(name, url string, format string) int {
-	remotes[name] = url
+	rc := loadRemotesConfig()
+
+	if err := rc.AddRemote(name, url); err != nil {
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": err.Error(),
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
+		return 1
+	}
+
+	saveRemotesConfig(rc)
 
 	if format == "json" {
 		json.NewEncoder(os.Stdout).Encode(map[string]string{
@@ -103,12 +122,20 @@ func addRemote(name, url string, format string) int {
 }
 
 func removeRemote(name string, format string) int {
-	if _, ok := remotes[name]; !ok {
-		fmt.Fprintf(os.Stderr, "Error: remote '%s' does not exist\n", name)
+	rc := loadRemotesConfig()
+
+	if err := rc.RemoveRemote(name); err != nil {
+		if format == "json" {
+			json.NewEncoder(os.Stdout).Encode(map[string]string{
+				"error": err.Error(),
+			})
+		} else {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		}
 		return 1
 	}
 
-	delete(remotes, name)
+	saveRemotesConfig(rc)
 
 	if format == "json" {
 		json.NewEncoder(os.Stdout).Encode(map[string]string{
@@ -119,4 +146,13 @@ func removeRemote(name string, format string) int {
 		fmt.Printf("Removed remote: %s\n", name)
 	}
 	return 0
+}
+
+func getRemote(name string) (*config.Remote, error) {
+	rc := loadRemotesConfig()
+	remote, err := rc.GetRemote(name)
+	if err != nil {
+		return nil, err
+	}
+	return &remote, nil
 }
