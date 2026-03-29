@@ -40,6 +40,8 @@ type opts struct {
 	showValue  bool
 	path       string
 	tz         *time.Location
+	since      string
+	until      string
 }
 
 func nomsLog(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandler) {
@@ -56,6 +58,8 @@ func nomsLog(noms *kingpin.Application) (*kingpin.CmdClause, util.KingpinHandler
 	cmd.Flag("graph", "show ascii-based commit hierarchy on left side of output").BoolVar(&o.showGraph)
 	cmd.Flag("show-value", "show commit value rather than diff information").BoolVar(&o.showValue)
 	cmd.Flag("tz", "display formatted date comments in specified timezone, must be: local or utc").Default("local").StringVar(&tzName)
+	cmd.Flag("since", "show commits after this time (e.g., '1 week ago', '2024-01-01')").StringVar(&o.since)
+	cmd.Flag("until", "show commits before this time (e.g., 'yesterday', '2024-12-31')").StringVar(&o.until)
 
 	cmd.Arg("value", "dataset or value to display history for").Required().StringVar(&o.path)
 
